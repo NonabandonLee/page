@@ -1,0 +1,47 @@
+//
+//  NSString+CqGetFileSizeExtension.m
+//  01 百思不得其姐
+//
+//  Created by ken Zhao on 15/12/7.
+//  Copyright © 2015年 ios. All rights reserved.
+//
+
+#import "NSString+CqGetFileSizeExtension.h"
+
+@implementation NSString (CqGetFileSizeExtension)
+
+- (unsigned long long)cq_fileSize{
+    //创建文件管理者
+    NSFileManager *mgr = [NSFileManager defaultManager];
+    //查看文件类型
+    NSDictionary *atts = [mgr attributesOfItemAtPath:self error:nil];
+    NSString *fileType = atts.fileType;
+    
+    if ([fileType isEqualToString:NSFileTypeDirectory]) {
+        //获取文件夹遍历器
+        NSDirectoryEnumerator *enumerator = [mgr enumeratorAtPath:self];
+        
+        //总大小
+        unsigned long long fileSize = 0;
+        
+        //遍历所有子路径
+        for (NSString *subpath in enumerator) {
+            //获取子路径的全路径
+            NSString *fullPath = [self stringByAppendingPathComponent:subpath];
+            fileSize += [mgr attributesOfItemAtPath:fullPath error:nil].fileSize;
+            
+        }
+        
+        return fileSize;
+    }
+    
+    //文件
+    return atts.fileSize;
+    
+    
+    
+    
+}
+
+
+@end
