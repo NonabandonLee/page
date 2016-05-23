@@ -1,0 +1,119 @@
+
+- (instancetype)initWithStyle:(UITableViewCellStyle)style reuseIdentifier:(NSString *)reuseIdentifier{
+    if (self = [super initWithStyle:style reuseIdentifier:reuseIdentifier]) {
+        //占位文字
+        self.textLabel.text = @"正在计算.....";
+
+        //设置右边的视图
+        UIActivityIndicatorView *loadingView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+        [loadingView startAnimating];
+        self.accessoryView = loadingView;
+        
+        //给cell添加点按手势覆盖tableView的代理方法选择
+        [self addGestureRecognizer:[[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(clearCaches)]];
+        
+        CqWeakSelf
+        
+        //在子线程计算大小
+        dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//            //获取caches文件夹
+//            NSString *caches = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES).firstObject;
+//            
+//            //        CqLog(@"%@",caches);
+//            
+//            //获取所有的缓存文件夹
+//            NSString *cachesPath = [caches stringByAppendingPathComponent:@"default"];
+//#warning 睡眠
+//            [NSThread sleepForTimeInterval:5];
+            
+            unsigned long long fileSize = CqCachesPath.cq_fileSize;
+            
+//            CqLog(@"%@",CqCachesPath);
+            
+            if (weakSelf == nil) {
+                return ;
+            }
+            
+            //根据缓存大小生成字符串
+            NSString *fileText = nil;
+            
+            if (fileSize >= pow(10, 9)) {
+                fileText = [NSString stringWithFormat:@"%.1fGB",fileSize / pow(10, 9)];
+            }else if (fileSize >= pow(10, 6)){
+                fileText = [NSString stringWithFormat:@"%.1fMB",fileSize / pow(10, 6)];
+            }else if (fileSize >= pow(10, 3)){
+                fileText = [NSString stringWithFormat:@"%.1fKB",fileSize / pow(10, 3)];
+            }else{
+                fileText = [NSString stringWithFormat:@"%zdB",fileSize];
+            }
+            
+            //设置文字
+            NSString *text = [NSString stringWithFormat:@"清理缓存(%@)",fileText];
+            
+            //回主线程刷新文字
+            dispatch_async(dispatch_get_main_queue(), ^{
+             
+                //清空菊花
+                weakSelf.accessoryView = nil;
+                
+                //恢复到计算点击样式
+                weakSelf.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
+                //设置文字
+                weakSelf.textLabel.text = text;
+            });
+            
+        });
+        
+    }
+    
+    
+    return self;
+}
+
+
+- (void)clearCaches{
+    
+    //判断是否有菊花,正在转就无法点击
+    if (self.accessoryView) {
+        return;
+        
+    }
+    
+    CqWeakSelf
+    
+    [SVProgressHUD showWithStatus:@"正在清除缓存...." maskType:SVProgressHUDMaskTypeBlack];
+    
+    dispatch_async(dispatch_get_global_queue(0, 0), ^{
+//#warning 睡眠
+//        [NSThread sleepForTimeInterval:2];
+        
+        //文件管理者
+        NSFileManager *mgr = [NSFileManager defaultManager];
+        //删除文件夹
+        [mgr removeItemAtPath:CqCachesPath error:nil];
+       
+        //回到主线程
+        dispatch_async(dispatch_get_main_queue(), ^{
+            //隐藏
+            [SVProgressHUD showSuccessWithStatus:@"清除缓存成功" maskType:SVProgressHUDMaskTypeBlack];
+            
+            //设置文字
+            weakSelf.textLabel.text = @"清除缓存(0b)";
+            
+        });
+        
+        
+    });
+    
+    
+}
+
+
+- (void)layoutSubviews{
+    [super layoutSubviews];
+    
+    //由于菊花是用核心动画做出来的,一旦进入缓存池,动画会消失,必须在每次刷新添加到指定的cell中
+    UIActivityIndicatorView *loadingView = [[UIActivityIndicatorView alloc] initWithActivityIndicatorStyle:UIActivityIndicatorViewStyleGray];
+    [loadingView startAnimating];
+    
+}
